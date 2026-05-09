@@ -1,0 +1,3 @@
+# Force LF line endings for shell scripts so Windows checkouts don't break them.
+scripts/*.sh text eol=lf
+.drive-sync-ignore text eol=lf

@@ -1,0 +1,45 @@
+# .drive-sync-ignore
+# rsync-style exclusion patterns for the post-commit Drive sync.
+# Tracked in the repo so all machines mirror the same set of files.
+# Trailing slash means "directory only".
+
+# Git internals & sync metadata
+.git/
+.gitignore
+.gitattributes
+.drive-sync.config
+.drive-sync-ignore
+
+# Dev / build artifacts
+node_modules/
+out/
+dist/
+build/
+.next/
+.cache/
+coverage/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# The sync tooling itself (dev-only — the manager doesn't need it)
+scripts/sync-to-drive.sh
+scripts/install-sync-hook.sh
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env / secrets — never sync to a shared Drive
+.env
+.env.*

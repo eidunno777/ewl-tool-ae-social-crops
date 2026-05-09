@@ -1,0 +1,8 @@
+# Per-machine drive sync config (untracked).
+.drive-sync.config
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

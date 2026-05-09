@@ -1,0 +1,24 @@
+{
+  "//": "STARTER MANIFEST — edit every field below for your tool, then delete this // line.",
+  "id": "TODO-tool-id-kebab-case",
+  "name": "TODO Tool Display Name",
+  "description": "TODO one-sentence description of what this tool does",
+  "category": "ae",
+  "//-category": "one of: ae | c4d | figma | os",
+  "toolType": "jsx_script",
+  "//-toolType": "ae: jsx_script | cep_extension | ae_plugin | ae_template  •  c4d: c4d_plugin  •  figma: figma_plugin  •  os: os_tool",
+  "version": "1.0.0",
+  "author": "Eddie Livingstone",
+  "downloadUrl": "",
+  "localSourcePath": "TODO/CategoryFolder/ToolFolder",
+  "//-localSourcePath": "Path under Shared drives/.../Tools/ — should match the DRIVE_PATH in .drive-sync.config",
+  "fileName": "TODO Main File Name.jsx",
+  "installDetection": {
+    "method": "file_exists",
+    "relativePath": "TODO Main File Name.jsx"
+  },
+  "icon": "wrench",
+  "requiresAppVersion": true,
+  "appId": "aftereffects",
+  "//-appId": "aftereffects | cinema4d | figma  •  omit for os tools"
+}
