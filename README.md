@@ -1,87 +1,85 @@
-# Drive Tool Sync — Git post-commit → Google Drive
+# VR Art Tool Template
 
-A reusable, cross-platform Git `post-commit` hook that mirrors a tool repo
-into a Google Drive folder on every commit. Use it to keep your local Git
-work and the `VR-Art-Tools` manager's Drive scan folder always in sync.
+The starter for new VR Art tools. Provides a git `post-commit` hook
+that automatically mirrors the repo into the right Google Drive
+folder so the **VR-Art-Tools manager app** picks it up.
 
-Works on **macOS** and **Windows (Git Bash)**.
-
----
-
-## What's in this template
-
-```
-.drive-sync-ignore         # tracked  — rsync-style exclusions
-.gitattributes             # tracked  — forces LF endings on .sh files
-.gitignore                 # tracked  — ignores .drive-sync.config
-scripts/sync-to-drive.sh   # tracked  — the actual sync logic
-scripts/install-sync-hook.sh # tracked — one-time per-machine installer
-.drive-sync.config         # UNTRACKED — created by installer, per-machine
-```
-
-After running the installer in a repo:
-
-```
-.git/hooks/post-commit     # symlink → ../../scripts/sync-to-drive.sh
-```
+> **Source of truth:** local Git repo
+> **Distribution:** auto-mirrored to Google Drive on every commit
+> **Backup:** GHE remote
 
 ---
 
-## Install in a new repo
+## 🚀 Create a new tool (the easy way)
 
-1. Copy these four tracked files into your tool repo:
-   - `scripts/sync-to-drive.sh`
-   - `scripts/install-sync-hook.sh`
-   - `.drive-sync-ignore`
-   - `.gitattributes` (merge into existing if present)
-   - Add `.drive-sync.config` to `.gitignore`
-2. From the repo root, run:
+**Double-click [`new-tool.command`](./new-tool.command).**
 
+It will:
+
+1. Ask for a tool name, description, and category
+2. Create a private GHE repo from this template
+3. Clone it into `~/Documents/GitHub/vr-tool-<name>`
+4. Wire up the post-commit Drive sync hook
+5. Open the repo in Finder + GitHub Desktop
+
+Then:
+
+1. **Edit `tool.manifest.json`** — replace every `TODO` field
+2. **Drop your tool files** in (`.jsx`, `.pyp`, `.pyz`, etc.)
+3. **Commit via GitHub Desktop** → auto-syncs to Drive → manager sees it
+4. **Push** in GitHub Desktop to back it up to GHE
+
+That's it.
+
+---
+
+## 🧰 Create a new tool (manual / GitHub Desktop only)
+
+If you don't have/want `gh` CLI, the all-Desktop flow:
+
+1. **Browser**: open this template's GHE page → click **Use this template**
+   → **Create a new repository** → name it `vr-tool-<name>`, private.
+2. **GitHub Desktop**: `File → Clone repository` → pick your new repo,
+   clone to `~/Documents/GitHub/`.
+3. **Repository menu → Open in Terminal**, then run:
    ```bash
    bash scripts/install-sync-hook.sh
    ```
-
-3. When prompted, paste the absolute Drive path for **this tool on this
-   machine**, e.g.:
-   - macOS: `/Users/<you>/Library/CloudStorage/GoogleDrive-<you>@meta.com/My Drive/VR Art Tools/AE Scripts/MyTool`
-   - Windows: `G:/My Drive/VR Art Tools/AE Scripts/MyTool`
-4. Done. Every `git commit` from now on syncs to Drive.
+   Paste the absolute Drive path when prompted.
+4. Edit `tool.manifest.json`, drop in your files, commit via GitHub Desktop.
 
 ---
 
-## Verify it works
+## 🔁 Daily workflow (existing tool)
 
 ```bash
-git commit --allow-empty -m "test drive sync"
+cd ~/Documents/GitHub/vr-tool-<name>
+# edit code…
+git add . && git commit -m "..."
+# → ✅ auto-syncs to Drive → manager picks up update
+git push   # backup
 ```
 
-Expected line in your terminal:
-
-```
-✅ Synced <repo-name> → <drive-path> at <sha>
-```
-
-Then open the destination folder in Finder/Explorer — files should be
-present and current. Delete a file, commit, and confirm it disappears
-from Drive (the `--delete` flag is at work).
+Or just do all that in GitHub Desktop. The post-commit hook fires
+either way.
 
 ---
 
-## Bypass the hook (one-off)
-
-`post-commit` does not honor `--no-verify`. To skip a single commit:
+## 🖥️ Using the same tool on a second machine
 
 ```bash
-mv .git/hooks/post-commit .git/hooks/post-commit.off
-git commit -m "skipping sync this once"
-mv .git/hooks/post-commit.off .git/hooks/post-commit
+cd ~/Documents/GitHub
+gh repo clone edlivingstone/vr-tool-<name>
+cd vr-tool-<name>
+bash scripts/install-sync-hook.sh   # writes machine-local Drive path
 ```
 
-Or temporarily set `DRY_RUN=true` in `.drive-sync.config`.
+`.drive-sync.config` is per-machine (gitignored) so Mac vs Windows can
+have different paths to their respective Google Drive mounts.
 
 ---
 
-## Cross-platform notes
+## 🪟 Cross-platform notes
 
 | Concern        | macOS                                    | Windows (Git Bash)                               |
 | -------------- | ---------------------------------------- | ------------------------------------------------ |
@@ -90,28 +88,53 @@ Or temporarily set `DRY_RUN=true` in `.drive-sync.config`.
 | Drive root     | `~/Library/CloudStorage/GoogleDrive-…/`  | `G:/My Drive/` or `C:/Users/<user>/My Drive/`    |
 | Line endings   | LF                                       | `.gitattributes` forces LF on `*.sh`             |
 
-For identical behavior on both OSes, install rsync on Windows MSYS:
-
+For identical behavior on Windows, install rsync via MSYS2:
 ```bash
 pacman -S rsync
 ```
 
 ---
 
-## Failure modes (by design, none of these block your commit)
+## 🛟 Bypass the hook (one-off)
 
-- **Missing config**: prints "run installer" message, exits 0.
-- **Drive not mounted**: prints "destination parent does not exist", exits 0.
-- **Invalid path / partial sync**: prints a warning with the rsync/robocopy
-  return code, exits 0.
+`post-commit` doesn't honor `--no-verify`. To skip a single commit:
+
+```bash
+mv .git/hooks/post-commit .git/hooks/post-commit.off
+git commit -m "skipping sync this once"
+mv .git/hooks/post-commit.off .git/hooks/post-commit
+```
+
+Or set `DRY_RUN=true` in `.drive-sync.config` to preview without copying.
+
+---
+
+## 🩺 Failure modes (none of these block your commit)
+
+- **Missing config**: prints "run installer" message, exits 0
+- **Drive not mounted**: prints "destination parent does not exist", exits 0
+- **Invalid path / partial sync**: prints a warning, exits 0
 
 The commit always succeeds. Sync is best-effort.
 
 ---
 
-## Optional knobs in `.drive-sync.config`
+## 📁 What's in this template
 
-```ini
-DRIVE_PATH=/absolute/path/in/google/drive
-DRY_RUN=true     # preview without copying (rsync --dry-run, robocopy /L)
+```
+new-tool.command           # double-click bootstrap (this file is removed from new tools)
+scripts/sync-to-drive.sh   # the actual sync logic (Mac + Windows)
+scripts/install-sync-hook.sh # interactive one-time installer
+.drive-sync-ignore         # rsync exclusion patterns
+.drive-sync.config         # UNTRACKED — per-machine Drive path (created by installer)
+.gitattributes             # forces LF endings on .sh files
+.gitignore                 # ignores .drive-sync.config
+tool.manifest.json         # placeholder — edit for each tool
+CONFIGURE-NEW-TOOL.md      # detailed manual setup steps (also removed from new tools)
+```
+
+After running the installer in any tool repo:
+
+```
+.git/hooks/post-commit     # symlink → ../../scripts/sync-to-drive.sh
 ```

@@ -43,3 +43,6 @@ yarn-error.log*
 # Env / secrets — never sync to a shared Drive
 .env
 .env.*
+
+# Bootstrap script — only lives in the template repo.
+new-tool.command
