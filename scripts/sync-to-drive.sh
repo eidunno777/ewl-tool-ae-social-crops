@@ -95,7 +95,7 @@ fi
 SYNC_OK="false"
 
 if command -v rsync >/dev/null 2>&1; then
-  RSYNC_FLAGS=(--archive --delete --delay-updates --human-readable)
+  RSYNC_FLAGS=(--archive --delete --delay-updates --prune-empty-dirs --human-readable)
   if [ "$DRY_RUN" = "true" ]; then
     RSYNC_FLAGS+=(--dry-run --verbose)
   fi
