@@ -6,13 +6,16 @@
 #     bash scripts/install-sync-hook.sh
 #
 # What it does:
-#   1. Symlinks .git/hooks/post-commit -> ../../scripts/sync-to-drive.sh
-#      (falls back to a copy on systems without symlink support).
+#   1. Installs .git/hooks/post-commit. On macOS / Linux this is a symlink
+#      to ../../scripts/sync-to-drive.sh; on Windows without dev-mode
+#      symlinks it falls back to a real file copy (symlinks created in
+#      Git Bash without admin/dev-mode become plain text files, which
+#      breaks the hook silently).
 #   2. Makes scripts/sync-to-drive.sh executable.
 #   3. Prompts for the absolute Google Drive destination path if
-#      .drive-sync.config doesn't exist, then writes it.
-#   4. Ensures .drive-sync.config and .drive-sync-ignore (optional) entries
-#      are in .gitignore.
+#      .drive-sync.config doesn't exist, then writes it (LF-only, so
+#      CRLF doesn't smuggle \r into DRIVE_PATH).
+#   4. Ensures .drive-sync.config is in .gitignore.
 #   5. Prints a verification hint.
 
 set -euo pipefail
@@ -41,8 +44,6 @@ chmod +x "$SCRIPT_ABS" 2>/dev/null || true
 mkdir -p "$REPO_ROOT/.git/hooks"
 
 # --- Install the hook ---------------------------------------------------------
-# Prefer a symlink so editing the script in the repo updates the hook live.
-# Fall back to a copy on Windows where symlinks may not be permitted.
 if [ -e "$HOOK_PATH" ] || [ -L "$HOOK_PATH" ]; then
   echo "install-sync-hook: existing post-commit hook found at $HOOK_PATH"
   printf "Overwrite? [y/N] "
@@ -71,19 +72,21 @@ else
   UNAME_OUT="$(uname -s 2>/dev/null || echo Unknown)"
   case "$UNAME_OUT" in
     Darwin*)
-      SUGGEST="$HOME/Library/CloudStorage/GoogleDrive-<account>/My Drive/VR Art Tools/<ToolName>"
+      SUGGEST="$HOME/Library/CloudStorage/GoogleDrive-<account>/My Drive/Tools/EWL-Tools-Manager/<Category>/<ToolName>"
       ;;
     MINGW*|MSYS*|CYGWIN*)
-      SUGGEST="G:/My Drive/VR Art Tools/<ToolName>"
+      SUGGEST="G:/My Drive/Tools/EWL-Tools-Manager/<Category>/<ToolName>"
       ;;
     *)
-      SUGGEST="/absolute/path/to/your/Google Drive/<ToolName>"
+      SUGGEST="/absolute/path/to/your/Google Drive/Tools/EWL-Tools-Manager/<Category>/<ToolName>"
       ;;
   esac
 
   echo ""
   echo "Enter the absolute Google Drive destination path for THIS repo on THIS machine."
-  echo "Suggested format:"
+  echo "  <Category> is one of:  Ae  C4D  Figma  OS"
+  echo "  <ToolName> is the folder name the EWL Tools Manager will look for."
+  echo "Example:"
   echo "  $SUGGEST"
   echo ""
   printf "Drive path: "
@@ -94,11 +97,13 @@ else
     echo "  Create $CONFIG_FILE manually with a single line:"
     echo "    DRIVE_PATH=/your/path/here"
   else
+    # Write with LF endings. CRLF in this file leaks \r into DRIVE_PATH
+    # at runtime and Windows then creates a junk sibling folder on Drive.
     {
-      echo "# .drive-sync.config — per-machine, untracked."
-      echo "# Used by scripts/sync-to-drive.sh (post-commit hook)."
-      echo "DRIVE_PATH=$DRIVE_INPUT"
-      echo "# Optional: DRY_RUN=true to preview without copying."
+      printf '# .drive-sync.config — per-machine, untracked.\n'
+      printf '# Used by scripts/sync-to-drive.sh (post-commit hook).\n'
+      printf 'DRIVE_PATH=%s\n' "$DRIVE_INPUT"
+      printf '# Optional: DRY_RUN=true to preview without copying.\n'
     } > "$CONFIG_FILE"
     echo "✓ Wrote $CONFIG_FILE"
   fi

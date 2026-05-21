@@ -7,8 +7,17 @@
 .git/
 .gitignore
 .gitattributes
+.github/
 .drive-sync.config
 .drive-sync-ignore
+
+# Editor / IDE metadata
+.cursor/
+.vscode/
+.idea/
+.llms/
+*.swp
+*.swo
 
 # Dev / build artifacts
 node_modules/
@@ -24,12 +33,6 @@ coverage/
 Thumbs.db
 desktop.ini
 
-# Editor metadata
-.vscode/
-.idea/
-*.swp
-*.swo
-
 # The sync tooling itself (dev-only — the manager doesn't need it)
 scripts/sync-to-drive.sh
 scripts/install-sync-hook.sh
@@ -43,6 +46,3 @@ yarn-error.log*
 # Env / secrets — never sync to a shared Drive
 .env
 .env.*
-
-# Bootstrap script — only lives in the template repo.
-new-tool.command

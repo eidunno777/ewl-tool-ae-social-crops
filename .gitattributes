@@ -1,3 +1,4 @@
-# Force LF line endings for shell scripts so Windows checkouts don't break them.
-scripts/*.sh text eol=lf
-.drive-sync-ignore text eol=lf
+# Force LF line endings for shell scripts and tracked config files so
+# Windows checkouts don't smuggle CRLF into Drive paths or break Bash.
+scripts/*.sh        text eol=lf
+.drive-sync-ignore  text eol=lf

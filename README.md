@@ -1,103 +1,138 @@
-# VR Art Tool Template
+# ewl-tool-template
 
-The starter for new VR Art tools. Provides a git `post-commit` hook
-that automatically mirrors the repo into the right Google Drive
-folder so the **VR-Art-Tools manager app** picks it up.
+Starter for new **EWL Tools** — the per-tool repos that the [EWL Tools Manager](https://github.com/eidunno777/ewl-tools) discovers and installs.
 
-> **Source of truth:** local Git repo
+Every new tool starts from this template. It ships a Git `post-commit` hook
+that mirrors the repo to a Google Drive folder on every commit, so the
+manager picks the tool up automatically. GitHub (private) is the source of
+truth and backup; Drive is the distribution channel.
+
+> **Source of truth:** local Git repo + GitHub (private)
 > **Distribution:** auto-mirrored to Google Drive on every commit
-> **Backup:** GHE remote
+> **Discovery:** EWL Tools Manager walks `G:/My Drive/Tools/EWL-Tools-Manager/`
+> looking for `tool.manifest.json` files
 
 ---
 
-## 🚀 Create a new tool (the easy way)
+## Create a new tool from this template
 
-**Double-click [`new-tool.command`](./new-tool.command).**
+### 1. Make a new private repo from this template
 
-It will:
+On GitHub: open this repo, click **Use this template → Create a new repository**.
 
-1. Ask for a tool name, description, and category
-2. Create a private GHE repo from this template
-3. Clone it into `~/Documents/GitHub/vr-tool-<name>`
-4. Wire up the post-commit Drive sync hook
-5. Open the repo in Finder + GitHub Desktop
+- **Owner:** `eidunno777`
+- **Name:** `ewl-tool-<kebab-name>` (e.g. `ewl-tool-color-grader`)
+- **Visibility:** Private
 
-Then:
-
-1. **Edit `tool.manifest.json`** — replace every `TODO` field
-2. **Drop your tool files** in (`.jsx`, `.pyp`, `.pyz`, etc.)
-3. **Commit via GitHub Desktop** → auto-syncs to Drive → manager sees it
-4. **Push** in GitHub Desktop to back it up to GHE
-
-That's it.
-
----
-
-## 🧰 Create a new tool (manual / GitHub Desktop only)
-
-If you don't have/want `gh` CLI, the all-Desktop flow:
-
-1. **Browser**: open this template's GHE page → click **Use this template**
-   → **Create a new repository** → name it `vr-tool-<name>`, private.
-2. **GitHub Desktop**: `File → Clone repository` → pick your new repo,
-   clone to `~/Documents/GitHub/`.
-3. **Repository menu → Open in Terminal**, then run:
-   ```bash
-   bash scripts/install-sync-hook.sh
-   ```
-   Paste the absolute Drive path when prompted.
-4. Edit `tool.manifest.json`, drop in your files, commit via GitHub Desktop.
-
----
-
-## 🔁 Daily workflow (existing tool)
+### 2. Clone it locally
 
 ```bash
-cd ~/Documents/GitHub/vr-tool-<name>
+cd W:/Projects/GitHub        # or wherever you keep repos
+gh repo clone eidunno777/ewl-tool-<name>
+cd ewl-tool-<name>
+```
+
+### 3. Wire up the Drive sync hook (one-time per machine)
+
+```bash
+bash scripts/install-sync-hook.sh
+```
+
+When it prompts for the Drive path, paste the absolute path that this
+tool should live at on Drive. Convention:
+
+```
+G:/My Drive/Tools/EWL-Tools-Manager/<Category>/<ToolName>
+```
+
+`<Category>` ∈ `Ae`, `C4D`, `Figma`, `OS`. The installer creates the
+folder if it doesn't exist.
+
+### 4. Fill in the manifest
+
+Open `tool.manifest.json` and replace every `TODO` value. The `//-…`
+hint lines are inline comments — delete them once you're done.
+
+The `id` field must be globally unique across all EWL tools — the
+manager dedupes by it.
+
+### 5. Drop your tool's actual source files in
+
+`.jsx`, `.aex`, `.pyp`, plugin source, NSIS installer output, whatever
+the tool needs. The manager reads the manifest's `fileName` /
+`installDetection.relativePath` to figure out what to copy where.
+
+### 6. Commit
+
+```bash
+git add .
+git commit -m "Initial tool setup"
+git push
+```
+
+The post-commit hook fires automatically and mirrors the repo into Drive.
+Expected last line:
+
+```
+✅ Synced ewl-tool-<name> → G:/My Drive/Tools/EWL-Tools-Manager/<Cat>/<Name> at <sha>
+```
+
+### 7. Wire the tool into the manager's catalog
+
+Edit `W:/Projects/GitHub/ewl-tools/catalog.json` and add a new entry
+pointing at the same `id` you used in the manifest. Then restart the
+manager to verify it picks the tool up.
+
+> **Do not run `npm run build-catalog`** in `ewl-tools/`. It regenerates
+> `catalog.json` from manifests but drops the `toolsBasePath` block that
+> the renderer needs. Hand-edit `catalog.json` instead.
+
+---
+
+## What's in this template
+
+```
+scripts/sync-to-drive.sh         # the actual sync logic (rsync on Mac/Linux, robocopy on Windows)
+scripts/install-sync-hook.sh     # one-time per-machine installer
+.drive-sync-ignore               # tracked exclusion patterns (.git, node_modules, etc.)
+.drive-sync.config               # UNTRACKED — per-machine Drive path (created by installer)
+.gitattributes                   # forces LF endings on .sh files and .drive-sync-ignore
+.gitignore                       # ignores .drive-sync.config and OS junk
+tool.manifest.json               # placeholder — replace every TODO field
+README.md                        # this file
+```
+
+After running the installer, the post-commit hook lives at:
+
+```
+.git/hooks/post-commit           # symlink → ../../scripts/sync-to-drive.sh (Mac/Linux)
+                                 # OR a file copy (Windows without dev-mode symlinks)
+```
+
+---
+
+## Drive sync behavior
+
+- **Always exits 0.** A failed mirror never blocks a commit.
+- **Cross-platform:** rsync if available, otherwise robocopy on Windows.
+- **`.drive-sync-ignore`** uses rsync-style glob patterns. The robocopy
+  fallback skips patterns it can't translate (negations, `**` globs,
+  `path/glob` forms) and uses the simple-name fallbacks. Trailing slash
+  means "directory only".
+- **`.drive-sync.config`** is per-machine and gitignored, so Mac vs
+  Windows can point at different Drive mount paths.
+
+### Daily workflow once set up
+
+```bash
 # edit code…
-git add . && git commit -m "..."
-# → ✅ auto-syncs to Drive → manager picks up update
-git push   # backup
+git add . && git commit -m "..."   # auto-syncs to Drive
+git push                            # backup to GitHub
 ```
 
-Or just do all that in GitHub Desktop. The post-commit hook fires
-either way.
+### Bypass the hook for a single commit
 
----
-
-## 🖥️ Using the same tool on a second machine
-
-```bash
-cd ~/Documents/GitHub
-gh repo clone edlivingstone/vr-tool-<name>
-cd vr-tool-<name>
-bash scripts/install-sync-hook.sh   # writes machine-local Drive path
-```
-
-`.drive-sync.config` is per-machine (gitignored) so Mac vs Windows can
-have different paths to their respective Google Drive mounts.
-
----
-
-## 🪟 Cross-platform notes
-
-| Concern        | macOS                                    | Windows (Git Bash)                               |
-| -------------- | ---------------------------------------- | ------------------------------------------------ |
-| `rsync`        | Preinstalled                             | Not bundled — script falls back to `robocopy`    |
-| Symlinks       | Native                                   | Installer copies the script if symlinks blocked  |
-| Drive root     | `~/Library/CloudStorage/GoogleDrive-…/`  | `G:/My Drive/` or `C:/Users/<user>/My Drive/`    |
-| Line endings   | LF                                       | `.gitattributes` forces LF on `*.sh`             |
-
-For identical behavior on Windows, install rsync via MSYS2:
-```bash
-pacman -S rsync
-```
-
----
-
-## 🛟 Bypass the hook (one-off)
-
-`post-commit` doesn't honor `--no-verify`. To skip a single commit:
+`post-commit` doesn't honor `--no-verify`. To skip one commit:
 
 ```bash
 mv .git/hooks/post-commit .git/hooks/post-commit.off
@@ -107,34 +142,36 @@ mv .git/hooks/post-commit.off .git/hooks/post-commit
 
 Or set `DRY_RUN=true` in `.drive-sync.config` to preview without copying.
 
+### Second machine
+
+```bash
+gh repo clone eidunno777/ewl-tool-<name>
+cd ewl-tool-<name>
+bash scripts/install-sync-hook.sh   # writes a machine-local Drive path
+```
+
+`.drive-sync.config` is per-machine (gitignored), so Mac and Windows can
+have different paths to their respective Google Drive mounts.
+
 ---
 
-## 🩺 Failure modes (none of these block your commit)
+## Cross-platform notes
 
-- **Missing config**: prints "run installer" message, exits 0
-- **Drive not mounted**: prints "destination parent does not exist", exits 0
+| Concern        | macOS                                      | Windows (Git Bash)                                  |
+| -------------- | ------------------------------------------ | --------------------------------------------------- |
+| `rsync`        | Preinstalled                               | Not bundled — script falls back to `robocopy`       |
+| Symlinks       | Native                                     | Installer copies the script if symlinks blocked     |
+| Drive root     | `~/Library/CloudStorage/GoogleDrive-…/`    | `G:/My Drive/Tools/EWL-Tools-Manager/`              |
+| Line endings   | LF                                         | `.gitattributes` forces LF on `*.sh`                |
+
+For identical behavior on Windows, install rsync via MSYS2: `pacman -S rsync`.
+
+---
+
+## Failure modes (none of these block your commit)
+
+- **Missing config**: prints "run installer", exits 0
+- **Drive not mounted**: prints "could not create $DRIVE_PATH", exits 0
 - **Invalid path / partial sync**: prints a warning, exits 0
 
 The commit always succeeds. Sync is best-effort.
-
----
-
-## 📁 What's in this template
-
-```
-new-tool.command           # double-click bootstrap (this file is removed from new tools)
-scripts/sync-to-drive.sh   # the actual sync logic (Mac + Windows)
-scripts/install-sync-hook.sh # interactive one-time installer
-.drive-sync-ignore         # rsync exclusion patterns
-.drive-sync.config         # UNTRACKED — per-machine Drive path (created by installer)
-.gitattributes             # forces LF endings on .sh files
-.gitignore                 # ignores .drive-sync.config
-tool.manifest.json         # placeholder — edit for each tool
-CONFIGURE-NEW-TOOL.md      # detailed manual setup steps (also removed from new tools)
-```
-
-After running the installer in any tool repo:
-
-```
-.git/hooks/post-commit     # symlink → ../../scripts/sync-to-drive.sh
-```

@@ -39,12 +39,17 @@ while IFS= read -r line || [ -n "$line" ]; do
   case "$line" in
     ''|\#*) continue ;;
   esac
+  # Strip a trailing CR so CRLF-encoded configs (the default on Windows
+  # when written from PowerShell / VSCode) don't sneak a literal \r into
+  # values, which turns "Motion-Lab" into "Motion-Lab<U+F00D>" on disk.
+  line="${line%$'\r'}"
   if [[ "$line" == *"="* ]]; then
     key="${line%%=*}"
     val="${line#*=}"
     # Trim surrounding whitespace and matching quotes.
     val="${val%\"}"; val="${val#\"}"
     val="${val%\'}"; val="${val#\'}"
+    val="${val%$'\r'}"
     case "$key" in
       DRIVE_PATH) DRIVE_PATH="$val" ;;
       DRY_RUN)    DRY_RUN="$val" ;;
@@ -66,14 +71,18 @@ case "$DRIVE_PATH" in
 esac
 
 # --- Verify destination exists ------------------------------------------------
-DEST_PARENT="$(dirname "$DRIVE_PATH")"
-if [ ! -d "$DEST_PARENT" ]; then
-  echo "drive-sync: destination parent does not exist: $DEST_PARENT"
-  echo "drive-sync: check that Google Drive is mounted and the path is correct."
+# We try to create the full DRIVE_PATH up front (this is also where the
+# share-root parents like .../Tools/EWL-Tools-Manager/Ae/ get bootstrapped
+# on a fresh Drive). If mkdir fails AND the parent doesn't exist, we
+# assume the Drive isn't mounted and bail (always exit 0 — never block
+# the commit).
+mkdir -p "$DRIVE_PATH" 2>/dev/null
+if [ ! -d "$DRIVE_PATH" ]; then
+  DEST_PARENT="$(dirname "$DRIVE_PATH")"
+  echo "drive-sync: could not create $DRIVE_PATH"
+  echo "drive-sync: parent=$DEST_PARENT — check that Google Drive is mounted and the path is correct."
   exit 0
 fi
-
-mkdir -p "$DRIVE_PATH" 2>/dev/null || true
 
 # --- Detect environment -------------------------------------------------------
 UNAME_OUT="$(uname -s 2>/dev/null || echo Unknown)"
@@ -119,9 +128,35 @@ elif [ "$IS_WINDOWS" = "true" ] && command -v cmd >/dev/null 2>&1; then
   RC_XD=()  # dirs
   if [ -f "$IGNORE_FILE" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
-      case "$line" in ''|\#*) continue ;; esac
+      # Strip trailing CR (CRLF-encoded ignore files would otherwise
+      # smuggle \r into pattern names).
+      line="${line%$'\r'}"
+      case "$line" in
+        ''|\#*) continue ;;
+        # robocopy /XF /XD only understand simple name patterns. Skip
+        # rsync-only forms so /XF and /XD don't error out with
+        # "Invalid Parameter #NN":
+        #   - negations (!foo)              — rsync include rules
+        #   - any pattern containing **     — recursive globs
+        #   - any path-glob ("foo/*", "a/b/*.json") — robocopy treats
+        #     these as malformed args. The directory-name counterpart
+        #     (e.g. "projects") is enough because robocopy /XD matches
+        #     every directory level by name anyway.
+        '!'*) continue ;;
+        *'**'*) continue ;;
+        */*\**) continue ;;
+        */*\?*) continue ;;
+      esac
       pat="${line%/}"  # strip trailing slash
-      if [[ "$line" == */ ]] || [[ "$pat" != *.* && "$pat" != *\** ]]; then
+      # Classify as directory if:
+      #   - line ends with "/"                         (explicit dir)
+      #   - pattern has no extension and no wildcard   (e.g. node_modules, .git)
+      # The dotted-name case (".git", ".cursor", ".github") must also go to
+      # /XD — otherwise robocopy will treat them as files and never exclude
+      # the directories, leaking .git/ etc. onto Drive.
+      if [[ "$line" == */ ]] \
+         || [[ "$pat" != *.* && "$pat" != *\** ]] \
+         || [[ "$pat" == .* && "$pat" != *\** ]]; then
         RC_XD+=("$pat")
       else
         RC_XF+=("$pat")
@@ -141,7 +176,13 @@ elif [ "$IS_WINDOWS" = "true" ] && command -v cmd >/dev/null 2>&1; then
   fi
 
   # robocopy exit codes 0–7 are success-ish; 8+ are real errors.
-  cmd //c robocopy "${RC_ARGS[@]}"
+  # MSYS_NO_PATHCONV=1 stops Git Bash from rewriting /MIR, /XF, /XD, etc.
+  # into "C:/Program Files/Git/MIR" before they reach robocopy.
+  # IMPORTANT: do NOT wrap with `cmd //c`. The cmd-shell re-parse of args
+  # containing spaces (e.g. "G:\My Drive\...") silently drops args and
+  # robocopy ends up running with no work to do. Calling robocopy.exe
+  # directly works fine — it's already a Windows binary on PATH.
+  MSYS_NO_PATHCONV=1 robocopy "${RC_ARGS[@]}" >/dev/null
   rc=$?
   if [ $rc -lt 8 ]; then
     SYNC_OK="true"
