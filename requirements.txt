@@ -1,0 +1,3 @@
+# Python dependencies for scripts/generate-guide-assets.py
+# Only needed if you want to regenerate the guide PNGs.
+pillow>=8.2.0

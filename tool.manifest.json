@@ -1,25 +1,19 @@
 {
-  "//": "STARTER MANIFEST — replace every TODO field below, then delete this // line and every //- hint line.",
-  "id": "TODO-tool-id-kebab-case",
-  "//-id": "Globally unique across all EWL tools. Convention: kebab-case, no 'ewl-tool-' prefix. The manager's catalog.json dedupes by this.",
-  "name": "TODO Tool Display Name",
-  "description": "TODO one-sentence description of what this tool does",
+  "id": "social-crops",
+  "name": "Social Crops",
+  "description": "Drop social-media guide overlays and aspect-ratio safe-zone references into any comp, then create wrapped comps at optimal sizes for LinkedIn, Instagram Feed, Instagram Reels, TikTok, and more.",
   "category": "ae",
-  "//-category": "one of: ae | c4d | figma | os",
   "toolType": "jsx_script",
-  "//-toolType": "ae: jsx_script | cep_extension | ae_plugin | ae_template  •  c4d: c4d_plugin | c4d_script  •  figma: figma_plugin  •  os: os_tool",
   "version": "1.0.0",
   "author": "Eddie Livingstone",
   "downloadUrl": "",
-  "localSourcePath": "TODO/<Category>/<ToolFolder>",
-  "//-localSourcePath": "Path under G:/My Drive/Tools/EWL-Tools-Manager/ — must match the DRIVE_PATH tail in .drive-sync.config",
-  "fileName": "TODO Main File Name.jsx",
+  "localSourcePath": "Ae/Social Crops",
+  "fileName": "Social Crops.jsx",
   "installDetection": {
     "method": "file_exists",
-    "relativePath": "TODO Main File Name.jsx"
+    "relativePath": "Social Crops.jsx"
   },
-  "icon": "wrench",
+  "icon": "crop",
   "requiresAppVersion": true,
-  "appId": "aftereffects",
-  "//-appId": "aftereffects | cinema4d | figma  •  omit for os_tool"
+  "appId": "aftereffects"
 }
