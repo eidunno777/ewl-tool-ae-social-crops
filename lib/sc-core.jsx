@@ -15,7 +15,7 @@ var SC_Core = (function () {
 
     function initPaths(mainFilePath) {
         var root = File(mainFilePath).parent;
-        _imgFolder = new Folder(root.fsName + "/images");
+        _imgFolder = new Folder(root.fsName + "/images");       // dev/source layout: sibling images/ folder
     }
 
     function imgPath(filename) {
@@ -23,7 +23,7 @@ var SC_Core = (function () {
             alert("Social Crops: image folder not initialised.");
             return null;
         }
-        return _imgFolder.fsName + "/" + filename;
+        return _imgFolder.fsName + "/" + filename;   // dev/source layout: unprefixed filename
     }
 
 

@@ -25,10 +25,17 @@ merged = main.replace('#include "lib/sc-core.jsx"', core)
 merged = merged.replace('#include "lib/sc-ui.jsx"', ui)
 
 # The merged file lives at ScriptUI Panels root ($.fileName.parent = ScriptUI Panels/).
-# Images live in a named subfolder: ScriptUI Panels/Social Crops/images/
+# Some install paths (EWL Tools Manager's jsx_script installer, older builds)
+# can only copy files flat into that root — no subfolders. So the built/
+# distributed script expects images flattened alongside it, each prefixed
+# with "sc-" to avoid colliding with other tools' assets.
 merged = merged.replace(
-    '_imgFolder = new Folder(root.fsName + "/images");',
-    '_imgFolder = new Folder(root.fsName + "/Social Crops/images");'
+    '_imgFolder = new Folder(root.fsName + "/images");       // dev/source layout: sibling images/ folder',
+    '_imgFolder = new Folder(root.fsName);                   // installed layout: flat, alongside script'
+)
+merged = merged.replace(
+    'return _imgFolder.fsName + "/" + filename;   // dev/source layout: unprefixed filename',
+    'return _imgFolder.fsName + "/sc-" + filename;   // installed layout: "sc-" prefixed, flat'
 )
 
 out = os.path.join(ROOT, "Social Crops.built.jsx")

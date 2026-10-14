@@ -16,5 +16,25 @@
   "icon": "crop",
   "requiresAppVersion": true,
   "appId": "aftereffects",
-  "isScriptUIPanel": true
+  "isScriptUIPanel": true,
+  "files": [
+    { "source": "Social Crops.built.jsx", "destination": "Social Crops.jsx" },
+    { "source": "images/all-crop.png", "destination": "sc-all-crop.png" },
+    { "source": "images/all-overlay.png", "destination": "sc-all-overlay.png" },
+    { "source": "images/icon-instagram.png", "destination": "sc-icon-instagram.png" },
+    { "source": "images/icon-linkedin.png", "destination": "sc-icon-linkedin.png" },
+    { "source": "images/icon-tiktok.png", "destination": "sc-icon-tiktok.png" },
+    { "source": "images/instagram-feed-crop.png", "destination": "sc-instagram-feed-crop.png" },
+    { "source": "images/instagram-feed-overlay.png", "destination": "sc-instagram-feed-overlay.png" },
+    { "source": "images/linkedin-crop.png", "destination": "sc-linkedin-crop.png" },
+    { "source": "images/linkedin-overlay.png", "destination": "sc-linkedin-overlay.png" },
+    { "source": "images/ratio-16x9-crop.png", "destination": "sc-ratio-16x9-crop.png" },
+    { "source": "images/ratio-1x1-crop.png", "destination": "sc-ratio-1x1-crop.png" },
+    { "source": "images/ratio-4x5-crop.png", "destination": "sc-ratio-4x5-crop.png" },
+    { "source": "images/ratio-9x16-crop.png", "destination": "sc-ratio-9x16-crop.png" },
+    { "source": "images/reel-overlay.png", "destination": "sc-reel-overlay.png" },
+    { "source": "images/reels-crop.png", "destination": "sc-reels-crop.png" },
+    { "source": "images/tiktok-crop.png", "destination": "sc-tiktok-crop.png" },
+    { "source": "images/tiktok-overlay.png", "destination": "sc-tiktok-overlay.png" }
+  ]
 }

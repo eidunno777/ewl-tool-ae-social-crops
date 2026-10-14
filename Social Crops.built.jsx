@@ -67,7 +67,7 @@ var SC_Core = (function () {
 
     function initPaths(mainFilePath) {
         var root = File(mainFilePath).parent;
-        _imgFolder = new Folder(root.fsName + "/Social Crops/images");
+        _imgFolder = new Folder(root.fsName);                   // installed layout: flat, alongside script
     }
 
     function imgPath(filename) {
@@ -75,7 +75,7 @@ var SC_Core = (function () {
             alert("Social Crops: image folder not initialised.");
             return null;
         }
-        return _imgFolder.fsName + "/" + filename;
+        return _imgFolder.fsName + "/sc-" + filename;   // installed layout: "sc-" prefixed, flat
     }
 
 
