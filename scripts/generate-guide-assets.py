@@ -208,6 +208,94 @@ def draw_ig_feed_overlay(name):
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
+# ── Platform UI icons (32×32 px, RGBA) ────────────────────────────────────────
+
+def _font(size, bold=False):
+    """Return a Pillow font, trying common Windows / macOS / Linux paths."""
+    from PIL import ImageFont
+    candidates = (
+        [r"C:\Windows\Fonts\arialbd.ttf", r"C:\Windows\Fonts\arial.ttf",
+         "/System/Library/Fonts/Helvetica.ttc",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]
+        if bold else
+        [r"C:\Windows\Fonts\arial.ttf",
+         "/System/Library/Fonts/Helvetica.ttc",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    )
+    for p in candidates:
+        try:
+            return ImageFont.truetype(p, size)
+        except Exception:
+            pass
+    return ImageFont.load_default()
+
+
+def _draw_icon(bg_rgba, text, text_rgba=(255, 255, 255, 255),
+               radius=7, size=32, bold=True, font_size=14):
+    """32×32 rounded-square icon with centred text."""
+    from PIL import ImageFont
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    # Rounded rect background via mask
+    bg = Image.new("RGBA", (size, size), bg_rgba)
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, size - 1, size - 1], radius=radius, fill=255)
+    img.paste(bg, mask=mask)
+    d = ImageDraw.Draw(img)
+    fnt = _font(font_size, bold=bold)
+    try:
+        bb = d.textbbox((0, 0), text, font=fnt)
+        tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    except AttributeError:                      # older Pillow
+        tw, th = d.textsize(text, font=fnt)
+    d.text(((size - tw) // 2, (size - th) // 2 - 1),
+           text, fill=text_rgba, font=fnt)
+    return img
+
+
+def _gradient_icon(top_rgba, bot_rgba, text, text_rgba=(255, 255, 255, 255),
+                   radius=7, size=32, bold=True, font_size=14):
+    """Vertical-gradient rounded-square icon."""
+    from PIL import ImageFont
+    # Build gradient
+    grad = Image.new("RGBA", (size, size))
+    for y in range(size):
+        t = y / (size - 1)
+        px = tuple(int(top_rgba[i] * (1 - t) + bot_rgba[i] * t) for i in range(4))
+        for x in range(size):
+            grad.putpixel((x, y), px)
+    # Mask to rounded rect
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, size - 1, size - 1], radius=radius, fill=255)
+    img.paste(grad, mask=mask)
+    # Text
+    d = ImageDraw.Draw(img)
+    fnt = _font(font_size, bold=bold)
+    try:
+        bb = d.textbbox((0, 0), text, font=fnt)
+        tw, th = bb[2] - bb[0], bb[3] - bb[1]
+    except AttributeError:
+        tw, th = d.textsize(text, font=fnt)
+    d.text(((size - tw) // 2, (size - th) // 2 - 1),
+           text, fill=text_rgba, font=fnt)
+    return img
+
+
+def make_platform_icons():
+    # LinkedIn — brand blue
+    save_png(_draw_icon((10, 102, 194, 255), "in", radius=4), "icon-linkedin.png")
+    # Instagram — purple → golden-orange gradient
+    save_png(_gradient_icon((131, 52, 175, 255), (252, 175, 69, 255), "IG",
+                            radius=7), "icon-instagram.png")
+    # TikTok — black square
+    save_png(_draw_icon((0, 0, 0, 255), "TT", radius=7), "icon-tiktok.png")
+    print("  icon-linkedin.png")
+    print("  icon-instagram.png")
+    print("  icon-tiktok.png")
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     print(f"Writing to {OUT_DIR}\n")
@@ -221,6 +309,9 @@ def main():
     make_crop("ratio-4x5-crop.png",  SLATE_BG, SLATE_ACCENT, 4,  5)
     make_crop("ratio-9x16-crop.png", SLATE_BG, SLATE_ACCENT, 9, 16)
     make_crop("ratio-16x9-crop.png", SLATE_BG, SLATE_ACCENT, 16, 9)
+
+    # Platform icons
+    make_platform_icons()
 
     print("\nDone.")
 

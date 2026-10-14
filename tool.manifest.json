@@ -15,5 +15,6 @@
   },
   "icon": "crop",
   "requiresAppVersion": true,
-  "appId": "aftereffects"
+  "appId": "aftereffects",
+  "isScriptUIPanel": true
 }

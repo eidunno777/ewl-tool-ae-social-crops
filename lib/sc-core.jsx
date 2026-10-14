@@ -257,6 +257,7 @@ var SC_Core = (function () {
 
     return {
         initPaths:       initPaths,
+        getImgPath:      imgPath,
         addGuideLayer:   addGuideLayer,
         removeAllGuides: removeAllGuides,
         createComps:     createComps,

@@ -46,9 +46,9 @@ var SC_UI = (function () {
     /** Horizontal rule drawn via onDraw (1 px, spans full parent width). */
     function addHRule(parent, topMargin, bottomMargin) {
         var g = parent.add("group");
-        g.preferredSize   = [-1, 1];
+        g.preferredSize   = [-1, 2];
         g.margins         = [0, topMargin || 0, 0, bottomMargin || 0];
-        g.alignment       = ["fill", "center"];
+        g.alignment       = ["fill", "top"];   // "top" avoids grabbing leftover column height
         g.onDraw = function () {
             try {
                 var gfx = this.graphics;
@@ -67,7 +67,7 @@ var SC_UI = (function () {
         var row = parent.add("group");
         row.orientation   = "row";
         row.alignChildren = ["fill", "center"];
-        row.margins       = [0, 10, 0, 6];
+        row.margins       = [0, 6, 0, 4];
         row.spacing       = 8;
 
         var lbl = row.add("statictext", undefined, label);
@@ -75,8 +75,8 @@ var SC_UI = (function () {
         setColor(lbl, null, C.accent);
 
         var rule = row.add("group");
-        rule.preferredSize  = [-1, 1];
-        rule.alignment      = ["fill", "center"];
+        rule.preferredSize  = [-1, 2];
+        rule.alignment      = ["fill", "center"];   // center is vertical within the row, fine here
         rule.onDraw = function () {
             try {
                 var gfx = this.graphics;
@@ -103,31 +103,9 @@ var SC_UI = (function () {
     // ── Guide section ──────────────────────────────────────────────────────────
 
     var PLATFORMS = [
-        {
-            label:   "LinkedIn",
-            overlay: "linkedin-overlay.png",
-            crop:    "linkedin-crop.png"
-        },
-        {
-            label:   "Instagram Feed",
-            overlay: null,                          // no UI overlay for feed
-            crop:    "instagram-feed-crop.png"
-        },
-        {
-            label:   "Instagram Reels",
-            overlay: "reel-overlay.png",
-            crop:    "reels-crop.png"
-        },
-        {
-            label:   "TikTok",
-            overlay: "tiktok-overlay.png",
-            crop:    "tiktok-crop.png"
-        },
-        {
-            label:   "All Platforms",
-            overlay: "all-overlay.png",
-            crop:    "all-crop.png"
-        }
+        { label: "LinkedIn",  icon: "icon-linkedin.png",  overlay: "linkedin-overlay.png", crop: "linkedin-crop.png"       },
+        { label: "Reels",     icon: "icon-instagram.png", overlay: "reel-overlay.png",       crop: "reels-crop.png"          },
+        { label: "TikTok",    icon: "icon-tiktok.png",    overlay: "tiktok-overlay.png",    crop: "tiktok-crop.png"         }
     ];
 
     var RATIO_GUIDES = [
@@ -138,67 +116,94 @@ var SC_UI = (function () {
     ];
 
     /**
-     * One platform block: label on top, icon buttons below (vertically stacked).
+     * One platform row: [32x32 icon OR "All" text] + icon buttons, all horizontal.
      * Overlay button omitted when platform.overlay is null.
+     * Icon loaded from images/ folder via SC_Core.getImgPath; falls back to text.
      *
      * Button icons (Arial-safe Unicode):
-     *   \u2261  ≡  three lines   — "UI Overlay / app chrome"
-     *   \u25A1  □  hollow square — "Safe Zone / crop boundary"
+     *   \u2261  ≡  three lines   — UI Overlay / app chrome
+     *   \u25A1  □  hollow square — Safe Zone / crop boundary
      */
     function addPlatformRow(parent, platform) {
-        var block = parent.add("group");
-        block.orientation   = "column";
-        block.alignChildren = ["left", "top"];
-        block.alignment     = ["left", "top"];
-        block.margins       = [0, 4, 0, 8];   // extra bottom margin separates sections
-        block.spacing       = 4;
+        var row = parent.add("group");
+        row.orientation   = "row";
+        row.alignChildren = ["left", "center"];
+        row.alignment     = ["left", "top"];
+        row.margins       = [0, 2, 0, 2];
+        row.spacing       = 8;
 
-        var nameLbl = block.add("statictext", undefined, platform.label);
-        nameLbl.graphics.font = font("Arial", false, 10);
-        nameLbl.alignment     = ["left", "top"];
-        setColor(nameLbl, null, C.text);
+        // ── Left: icon image or text fallback ──────────────────────────
+        if (platform.icon) {
+            var iconLoaded = false;
+            try {
+                var iconPath = SC_Core.getImgPath(platform.icon);
+                if (iconPath) {
+                    var iconFile = new File(iconPath);
+                    if (iconFile.exists) {
+                        var iconEl = row.add("image", undefined, iconFile);
+                        iconEl.preferredSize = [32, 32];
+                        iconEl.alignment     = ["left", "center"];
+                        iconLoaded = true;
+                    }
+                }
+            } catch (e) {}
+            if (!iconLoaded) {
+                // Fallback: dim text label in fixed-width slot
+                var fb = row.add("statictext", undefined, platform.label.slice(0, 3));
+                fb.preferredSize  = [32, -1];
+                fb.alignment      = ["left", "center"];
+                fb.graphics.font  = font("Arial", false, 9);
+                setColor(fb, null, C.dim);
+            }
+        } else {
+            // "All" — plain text in the icon slot
+            var lbl = row.add("statictext", undefined, platform.label);
+            lbl.preferredSize = [32, -1];
+            lbl.alignment     = ["left", "center"];
+            lbl.graphics.font = font("Arial", false, 11);
+            setColor(lbl, null, C.text);
+        }
 
-        var btnRow = block.add("group");
-        btnRow.orientation   = "row";
-        btnRow.alignChildren = ["left", "center"];
-        btnRow.alignment     = ["left", "top"];
-        btnRow.spacing       = 4;
-
+        // ── Right: action buttons ───────────────────────────────────────
         if (platform.overlay) {
-            var ovBtn = btnRow.add("button", undefined, "\u2261");
-            ovBtn.preferredSize = [32, 24];
+            var ovBtn = row.add("button", undefined, "\u2261");
+            ovBtn.preferredSize = [30, 26];
             ovBtn.graphics.font = font("Arial", false, 12);
             ovBtn.helpTip       = platform.label + " \u2014 UI Overlay (shows app chrome)";
             (function (p, b) { b.onClick = function () { SC_Core.addGuideLayer(p.overlay); }; })(platform, ovBtn);
         }
 
-        var czBtn = btnRow.add("button", undefined, "\u25A1");
-        czBtn.preferredSize = [32, 24];
+        var czBtn = row.add("button", undefined, "\u25A1");
+        czBtn.preferredSize = [30, 26];
         czBtn.graphics.font = font("Arial", false, 12);
         czBtn.helpTip       = platform.label + " \u2014 Safe Zone (content-safe crop guide)";
         (function (p, b) { b.onClick = function () { SC_Core.addGuideLayer(p.crop); }; })(platform, czBtn);
     }
 
-    /** Aspect-ratio crop guide buttons — evenly spaced row. */
+    /** Aspect-ratio crop guide buttons — 2x2 grid. */
     function addRatioGuideRow(parent) {
         addSubLabel(parent, "Aspect Ratios");
 
-        var row = parent.add("group");
-        row.orientation   = "row";
-        row.alignChildren = ["center", "center"];
-        row.alignment     = ["fill", "center"];
-        row.margins       = [0, 2, 0, 4];
-        row.spacing       = 4;
+        for (var i = 0; i < RATIO_GUIDES.length; i += 2) {
+            var row = parent.add("group");
+            row.orientation   = "row";
+            row.alignChildren = ["fill", "top"];
+            row.alignment     = ["fill", "top"];
+            row.margins       = [0, 2, 0, 2];
+            row.spacing       = 3;
 
-        for (var i = 0; i < RATIO_GUIDES.length; i++) {
-            (function (g) {
-                var btn = row.add("button", undefined, g.label);
-                btn.preferredSize = [-1, 26];
-                btn.minimumSize   = [36, 26];
-                btn.graphics.font = font("Arial", false, 10);
-                btn.helpTip       = "Drop " + g.label + " aspect-ratio guide into active comp";
-                btn.onClick = function () { SC_Core.addGuideLayer(g.file, g.fitToWidth); };
-            })(RATIO_GUIDES[i]);
+            (function (pair) {
+                for (var j = 0; j < pair.length; j++) {
+                    (function (g) {
+                        var btn = row.add("button", undefined, g.label);
+                        btn.alignment     = ["left", "top"];
+                        btn.preferredSize = [56, 28];
+                        btn.graphics.font = font("Arial", false, 10);
+                        btn.helpTip       = "Drop " + g.label + " aspect-ratio guide into active comp";
+                        btn.onClick = function () { SC_Core.addGuideLayer(g.file, g.fitToWidth); };
+                    })(pair[j]);
+                }
+            })(RATIO_GUIDES.slice(i, i + 2));
         }
     }
 
@@ -320,8 +325,8 @@ var SC_UI = (function () {
 
         // ── Create Comps primary button ─────────────────────────────────
         var createBtn = parent.add("button", undefined, "Create Comps");
-        createBtn.preferredSize = [-1, 36];
-        createBtn.alignment     = ["fill", "bottom"];
+        createBtn.preferredSize = [115, 36];
+        createBtn.alignment     = ["left", "top"];
         createBtn.graphics.font = font("Arial", true, 12);
         createBtn.helpTip =
             "Wrap the active comp in new parent comps at each selected aspect ratio.";
@@ -347,8 +352,8 @@ var SC_UI = (function () {
 
         win.orientation   = "column";
         win.alignChildren = ["fill", "top"];
-        win.margins       = [8, 8, 8, 10];
-        win.spacing       = 0;
+        win.margins       = [10, 8, 10, 10];
+        win.spacing       = 2;
         setColor(win, C.bg);
 
         // ── Header ──────────────────────────────────────────────────────
@@ -376,18 +381,16 @@ var SC_UI = (function () {
         // ── Guides section ───────────────────────────────────────────────
         addSectionHeader(win, "GUIDES");
 
-        addSubLabel(win, "Drop a guide into the active comp:");
-
         for (var pi = 0; pi < PLATFORMS.length; pi++) {
             addPlatformRow(win, PLATFORMS[pi]);
         }
 
         // Aspect-ratio crop guides
-        addHRule(win, 6, 2);
+        addHRule(win, 4, 2);
         addRatioGuideRow(win);
 
         // ── Divider ──────────────────────────────────────────────────────
-        addHRule(win, 8, 0);
+        addHRule(win, 6, 0);
 
         // ── Create Comps section ─────────────────────────────────────────
         addCreateCompsSection(win);
